@@ -1,87 +1,136 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <title>Antrian Charger Motor</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8">
+<title>Antrian Charger Motor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f7fb;
-      padding: 20px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-    }
+<style>
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f3f6fb;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+  }
 
-    .box {
-      background: white;
-      padding: 24px;
-      border-radius: 14px;
-      width: 100%;
-      max-width: 420px;
-      box-shadow: 0 15px 40px rgba(0,0,0,.08);
-      text-align: center;
-    }
+  .card {
+    background: #fff;
+    width: 100%;
+    max-width: 420px;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 20px 40px rgba(0,0,0,.08);
+    text-align: center;
+  }
 
-    h2 {
-      margin-bottom: 18px;
-    }
+  h2 {
+    margin-bottom: 20px;
+  }
 
-    input {
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 10px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-      font-size: 14px;
-    }
+  input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+  }
 
-    button {
-      width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      background: #2563eb;
-      color: white;
-      cursor: pointer;
-      margin-top: 6px;
-    }
+  button {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+  }
 
-    button:disabled {
-      background: #94a3b8;
-      cursor: not-allowed;
-    }
+  .btn-primary {
+    background: #2563eb;
+    color: white;
+  }
 
-    .info {
-      margin-top: 16px;
-      font-size: 15px;
-      line-height: 1.6;
-    }
+  .btn-danger {
+    background: #ef4444;
+    color: white;
+    margin-top: 12px;
+  }
 
-    .status {
-      margin-top: 12px;
-      font-weight: bold;
-      font-size: 18px;
-    }
-  </style>
+  .btn-primary:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+  }
+
+  .info {
+    margin-top: 16px;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .status {
+    margin-top: 12px;
+    font-weight: bold;
+    font-size: 18px;
+  }
+
+  .status.wait { color: #64748b; }
+  .status.ready { color: #f59e0b; }
+  .status.now { color: #16a34a; }
+
+  /* Popup */
+  .popup {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.4);
+    display: none;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .popup-box {
+    background: white;
+    padding: 20px;
+    border-radius: 14px;
+    text-align: center;
+    width: 280px;
+  }
+
+  .popup-box button {
+    margin-top: 12px;
+  }
+</style>
 </head>
 
 <body>
 
-<div class="box">
+<div class="card">
   <h2>🔌 Antrian Charger Motor</h2>
 
-  <input id="name" placeholder="Nama" />
-  <input id="plate" placeholder="Plat Nomor (B 1234 ABC)" />
+  <!-- FORM -->
+  <div id="form">
+    <input id="name" placeholder="Nama">
+    <input id="plate" placeholder="Plat Nomor (B 1234 ABC)">
+    <button class="btn-primary" onclick="ambilAntrian()">Ambil Antrian</button>
+  </div>
 
-  <button id="btn" onclick="ambilAntrian()">Ambil Antrian</button>
+  <!-- INFO -->
+  <div id="result" style="display:none">
+    <div class="info" id="info"></div>
+    <div class="status" id="status"></div>
+    <button class="btn-danger" onclick="resetLocal()">Ambil Ulang</button>
+  </div>
+</div>
 
-  <div class="info" id="info">Belum ambil antrian</div>
-  <div class="status" id="status"></div>
+<!-- POPUP -->
+<div class="popup" id="popup">
+  <div class="popup-box">
+    <h3>✅ Berhasil</h3>
+    <p>Antrian berhasil diambil</p>
+    <button class="btn-primary" onclick="closePopup()">OK</button>
+  </div>
 </div>
 
 <!-- Firebase -->
@@ -89,97 +138,100 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
-  // 🔥 Firebase Config
-  const firebaseConfig = {
-    apiKey: "AIzaSyCIdveFrv0s1sD4N1sID8x0DH2RKgo5LJg",
-    authDomain: "queue-charge.firebaseapp.com",
-    projectId: "queue-charge",
-    storageBucket: "queue-charge.firebasestorage.app",
-    messagingSenderId: "1057500450444",
-    appId: "1:1057500450444:web:d1bea6286d1b283408f5a9"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyCIdveFrv0s1sD4N1sID8x0DH2RKgo5LJg",
+  authDomain: "queue-charge.firebaseapp.com",
+  projectId: "queue-charge",
+  storageBucket: "queue-charge.firebasestorage.app",
+  messagingSenderId: "1057500450444",
+  appId: "1:1057500450444:web:d1bea6286d1b283408f5a9"
+};
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-  // 🔑 Device ID
-  const deviceId = localStorage.getItem("device_id") || (() => {
-    const id = crypto.randomUUID();
-    localStorage.setItem("device_id", id);
-    return id;
-  })();
+let myNumber = Number(localStorage.getItem("queue_number"));
 
-  let myNumber = Number(localStorage.getItem("queue_number"));
+init();
 
-  // 🔁 Jika sudah ambil antrian sebelumnya
+function init() {
   if (myNumber) {
-    document.getElementById("name").value = localStorage.getItem("queue_name") || "";
-    document.getElementById("plate").value = localStorage.getItem("queue_plate") || "";
-    document.getElementById("name").disabled = true;
-    document.getElementById("plate").disabled = true;
-    document.getElementById("btn").disabled = true;
+    showResult();
+  }
+}
+
+async function ambilAntrian() {
+  const name = document.getElementById("name").value.trim();
+  const plate = document.getElementById("plate").value.trim().toUpperCase();
+
+  if (!name || !plate) {
+    alert("Nama & plat wajib diisi");
+    return;
   }
 
-  // 🟢 Ambil Antrian
-  async function ambilAntrian() {
-    if (myNumber && myNumber > 0) return;
+  const snap = await db.collection("queue").orderBy("number", "desc").limit(1).get();
+  myNumber = snap.empty ? 1 : snap.docs[0].data().number + 1;
 
-    const name = document.getElementById("name").value.trim();
-    const plate = document.getElementById("plate").value.trim().toUpperCase();
-
-    if (!name || !plate) {
-      alert("Nama dan plat nomor wajib diisi");
-      return;
-    }
-
-    const snap = await db
-      .collection("queue")
-      .orderBy("number", "desc")
-      .limit(1)
-      .get();
-
-    const last = snap.empty ? 0 : snap.docs[0].data().number;
-    myNumber = last + 1;
-
-    await db.collection("queue").add({
-      number: myNumber,
-      name,
-      plate,
-      deviceId,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    localStorage.setItem("queue_number", myNumber);
-    localStorage.setItem("queue_name", name);
-    localStorage.setItem("queue_plate", plate);
-
-    document.getElementById("name").disabled = true;
-    document.getElementById("plate").disabled = true;
-    document.getElementById("btn").disabled = true;
-  }
-
-  // 🔄 Realtime Status (HANYA status, data user dari localStorage)
-  db.collection("meta").doc("state").onSnapshot(doc => {
-    if (!doc.exists || !myNumber) return;
-
-    const current = doc.data().current;
-    let statusText = "MENUNGGU";
-
-    if (myNumber === current) statusText = "SEKARANG 🔌";
-    else if (myNumber === current + 1) statusText = "BERSIAP ⚠️";
-
-    const name = localStorage.getItem("queue_name");
-    const plate = localStorage.getItem("queue_plate");
-
-    document.getElementById("info").innerHTML = `
-      Nama: <b>${name}</b><br>
-      Plat: <b>${plate}</b><br><br>
-      Nomor Kamu: <b>#${myNumber}</b><br>
-      Sekarang: <b>#${current}</b>
-    `;
-
-    document.getElementById("status").innerText = statusText;
+  await db.collection("queue").add({
+    number: myNumber,
+    name,
+    plate,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
+
+  localStorage.setItem("queue_number", myNumber);
+  localStorage.setItem("queue_name", name);
+  localStorage.setItem("queue_plate", plate);
+
+  showPopup();
+  showResult();
+}
+
+function showResult() {
+  document.getElementById("form").style.display = "none";
+  document.getElementById("result").style.display = "block";
+}
+
+db.collection("meta").doc("state").onSnapshot(doc => {
+  if (!doc.exists || !myNumber) return;
+
+  const current = doc.data().current;
+  let status = "MENUNGGU";
+  let cls = "wait";
+
+  if (myNumber === current) {
+    status = "SEKARANG 🔌";
+    cls = "now";
+  } else if (myNumber === current + 1) {
+    status = "BERSIAP ⚠️";
+    cls = "ready";
+  }
+
+  document.getElementById("info").innerHTML = `
+    Nama: <b>${localStorage.getItem("queue_name")}</b><br>
+    Plat: <b>${localStorage.getItem("queue_plate")}</b><br><br>
+    Nomor Kamu: <b>#${myNumber}</b><br>
+    Sekarang: <b>#${current}</b>
+  `;
+
+  const s = document.getElementById("status");
+  s.className = "status " + cls;
+  s.innerText = status;
+});
+
+function resetLocal() {
+  if (!confirm("Yakin ingin ambil ulang?")) return;
+  localStorage.clear();
+  location.reload();
+}
+
+function showPopup() {
+  document.getElementById("popup").style.display = "flex";
+}
+
+function closePopup() {
+  document.getElementById("popup").style.display = "none";
+}
 </script>
 
 </body>
