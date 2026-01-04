@@ -6,33 +6,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-:root {
+:root{
   --primary:#2563eb;
   --success:#16a34a;
   --warning:#f59e0b;
-  --danger:#ef4444;
-  --text:#0f172a;
   --muted:#64748b;
   --bg:#f1f5f9;
   --border:#e2e8f0;
 }
-
 *{box-sizing:border-box}
-
 body{
   margin:0;
   min-height:100vh;
-  font-family:"Inter","Segoe UI",system-ui,sans-serif;
-  background:
-    radial-gradient(1000px 400px at 10% -10%, #dbeafe, transparent),
-    radial-gradient(800px 300px at 90% 10%, #e0f2fe, transparent),
-    var(--bg);
+  font-family:Inter,Segoe UI,system-ui,sans-serif;
+  background:var(--bg);
   display:flex;
   align-items:center;
   justify-content:center;
   padding:16px;
 }
-
 .app{
   width:100%;
   max-width:420px;
@@ -41,13 +33,10 @@ body{
   padding:28px;
   box-shadow:0 20px 40px rgba(0,0,0,.08);
 }
+.header{text-align:center;margin-bottom:20px}
+.header h1{margin:0;font-size:22px}
+.header p{margin:6px 0 0;color:var(--muted);font-size:14px}
 
-/* HEADER */
-.header{text-align:center;margin-bottom:24px}
-.header h1{margin:0 0 6px;font-size:22px}
-.header p{margin:0;font-size:14px;color:var(--muted)}
-
-/* FORM */
 .field{margin-bottom:14px}
 .label{font-size:13px;color:var(--muted);margin-bottom:6px;display:block}
 input{
@@ -57,13 +46,7 @@ input{
   border:1px solid var(--border);
   font-size:15px;
 }
-input:focus{
-  outline:none;
-  border-color:var(--primary);
-  box-shadow:0 0 0 3px rgba(37,99,235,.15);
-}
 
-/* BUTTON */
 button{
   width:100%;
   padding:15px;
@@ -73,30 +56,16 @@ button{
   font-weight:600;
   cursor:pointer;
 }
-.btn-primary{
-  background:linear-gradient(135deg,#2563eb,#1d4ed8);
-  color:white;
-}
-.btn-success{
-  background:linear-gradient(135deg,#16a34a,#15803d);
-  color:white;
-}
-.btn-disabled{
-  background:#e5e7eb;
-  color:#9ca3af;
-  cursor:not-allowed;
-}
+.btn-primary{background:#2563eb;color:white}
+.btn-success{background:#16a34a;color:white}
+.btn-disabled{background:#e5e7eb;color:#9ca3af;cursor:not-allowed}
 
-/* INFO CARD */
-.card-info{
+.card{
   background:#f8fafc;
   border-radius:18px;
   padding:18px;
   margin-bottom:14px;
 }
-.card-info div{font-size:15px;margin-bottom:6px}
-
-/* STATUS */
 .status{
   padding:16px;
   border-radius:18px;
@@ -118,28 +87,31 @@ button{
 
   <div class="header">
     <h1>🔌 Charger Motor</h1>
-    <p>Ambil antrian & tunggu giliran kamu</p>
+    <p>Ambil antrian & tunggu giliran</p>
   </div>
 
   <!-- FORM -->
   <div id="form">
     <div class="field">
       <label class="label">Nama</label>
-      <input id="name" placeholder="Masukkan nama">
+      <input id="name">
     </div>
     <div class="field">
       <label class="label">Plat Nomor</label>
-      <input id="plate" placeholder="B 1234 ABC">
+      <input id="plate">
     </div>
     <button class="btn-primary" onclick="ambilAntrian()">Ambil Antrian</button>
   </div>
 
   <!-- RESULT -->
   <div id="result" class="hidden">
-    <div class="card-info" id="info"></div>
+    <div class="card" id="info"></div>
     <div class="status wait" id="statusBox"></div>
     <button id="finishBtn" class="btn-success hidden" onclick="selesaiMengisi()">
       Selesai Mengisi
+    </button>
+    <button id="lockedBtn" class="btn-disabled hidden">
+      Hanya bisa diselesaikan di device awal
     </button>
   </div>
 
@@ -157,23 +129,33 @@ firebase.initializeApp({
 });
 const db=firebase.firestore();
 
-let myNumber=Number(localStorage.getItem("queue_number"));
+/* ===== DEVICE ID ===== */
+let deviceId = localStorage.getItem("device_id");
+if(!deviceId){
+  deviceId = crypto.randomUUID();
+  localStorage.setItem("device_id", deviceId);
+}
+
+let myNumber = Number(localStorage.getItem("queue_number"));
 
 if(myNumber){
   showResult("-");
   listenStatus();
 }
 
+/* ===== AMBIL ANTRIAN ===== */
 async function ambilAntrian(){
-  const name=document.getElementById("name").value.trim();
-  const plate=document.getElementById("plate").value.trim().toUpperCase();
+  const name=nameInput.value.trim();
+  const plate=plateInput.value.trim().toUpperCase();
   if(!name||!plate)return alert("Nama & plat wajib diisi");
 
   const snap=await db.collection("queue").get();
   myNumber=snap.docs.length+1;
 
   await db.collection("queue").add({
-    number:myNumber,name,plate,
+    number:myNumber,
+    name,plate,
+    deviceId,
     createdAt:firebase.firestore.FieldValue.serverTimestamp()
   });
 
@@ -185,33 +167,46 @@ async function ambilAntrian(){
   listenStatus();
 }
 
+/* ===== UI ===== */
 function showResult(current){
   form.style.display="none";
   result.classList.remove("hidden");
 
   info.innerHTML=`
-    <div>Nama: <b>${localStorage.getItem("queue_name")}</b></div>
-    <div>Plat: <b>${localStorage.getItem("queue_plate")}</b></div>
-    <div>Nomor Antrian: <b>#${myNumber}</b></div>
-    <div>Sekarang: <b>${current}</b></div>
+    Nama: <b>${localStorage.getItem("queue_name")}</b><br>
+    Plat: <b>${localStorage.getItem("queue_plate")}</b><br>
+    Nomor: <b>#${myNumber}</b><br>
+    Sekarang: <b>${current}</b>
   `;
 }
 
+/* ===== STATUS ===== */
 function listenStatus(){
-  db.collection("meta").doc("state").onSnapshot(doc=>{
+  db.collection("meta").doc("state").onSnapshot(async doc=>{
     if(!doc.exists)return;
     const current=doc.data().current;
 
-    let text="MENUNGGU";
-    let cls="wait";
-
     finishBtn.classList.add("hidden");
+    lockedBtn.classList.add("hidden");
+
+    let text="MENUNGGU", cls="wait";
 
     if(myNumber===current){
       text="SEKARANG GILIRAN KAMU 🔌";
       cls="now";
-      finishBtn.classList.remove("hidden");
-    }else if(myNumber===current+1){
+
+      // cek device lock
+      const qSnap = await db.collection("queue")
+        .where("number","==",myNumber)
+        .limit(1).get();
+
+      if(!qSnap.empty && qSnap.docs[0].data().deviceId===deviceId){
+        finishBtn.classList.remove("hidden");
+      }else{
+        lockedBtn.classList.remove("hidden");
+      }
+    }
+    else if(myNumber===current+1){
       text="BERSIAP ⚠️";
       cls="ready";
     }
@@ -222,11 +217,12 @@ function listenStatus(){
   });
 }
 
-/* === SELESAI MENGISI (NEXT) === */
+/* ===== SELESAI ===== */
 async function selesaiMengisi(){
   const ref=db.collection("meta").doc("state");
   const snap=await ref.get();
   const current=snap.exists?snap.data().current:0;
+
   await ref.set({current:current+1});
 
   localStorage.clear();
