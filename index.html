@@ -58,7 +58,6 @@ button{
 }
 .btn-primary{background:#2563eb;color:white}
 .btn-success{background:#16a34a;color:white}
-.btn-disabled{background:#e5e7eb;color:#9ca3af;cursor:not-allowed}
 
 .card{
   background:#f8fafc;
@@ -76,7 +75,6 @@ button{
 .wait{background:#f1f5f9;color:var(--muted)}
 .ready{background:#fef3c7;color:var(--warning)}
 .now{background:#dcfce7;color:var(--success)}
-.done{background:#e5e7eb;color:#475569}
 
 .hidden{display:none}
 </style>
@@ -85,9 +83,10 @@ button{
 <body>
 
 <div class="app">
+
   <div class="header">
     <h1>🔌 Charger Motor</h1>
-    <p>Antrian pengisian</p>
+    <p>Ambil antrian & tunggu giliran</p>
   </div>
 
   <!-- FORM -->
@@ -110,10 +109,8 @@ button{
     <button id="finishBtn" class="btn-success hidden" onclick="selesaiMengisi()">
       Selesai Mengisi
     </button>
-    <button id="lockedBtn" class="btn-disabled hidden">
-      Hanya bisa diselesaikan di device awal
-    </button>
   </div>
+
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -127,24 +124,25 @@ firebase.initializeApp({
 });
 const db=firebase.firestore();
 
-/* DEVICE LOCK */
-let deviceId = localStorage.getItem("device_id");
+/* DEVICE ID */
+let deviceId=localStorage.getItem("device_id");
 if(!deviceId){
-  deviceId = crypto.randomUUID();
-  localStorage.setItem("device_id", deviceId);
+  deviceId=crypto.randomUUID();
+  localStorage.setItem("device_id",deviceId);
 }
 
-let myNumber = Number(localStorage.getItem("queue_number"));
+let myNumber=Number(localStorage.getItem("queue_number"));
 
 if(myNumber){
   showResult("-");
   listenStatus();
 }
 
+/* AMBIL ANTRIAN */
 async function ambilAntrian(){
   const name=document.getElementById("name").value.trim();
   const plate=document.getElementById("plate").value.trim().toUpperCase();
-  if(!name||!plate) return alert("Nama & plat wajib diisi");
+  if(!name||!plate)return alert("Nama & plat wajib diisi");
 
   const snap=await db.collection("queue").get();
   myNumber=snap.docs.length+1;
@@ -162,6 +160,7 @@ async function ambilAntrian(){
   listenStatus();
 }
 
+/* UI */
 function showResult(current){
   form.style.display="none";
   result.classList.remove("hidden");
@@ -173,35 +172,30 @@ function showResult(current){
   `;
 }
 
+/* STATUS */
 function listenStatus(){
   db.collection("meta").doc("state").onSnapshot(async doc=>{
-    if(!doc.exists) return;
+    if(!doc.exists)return;
     const current=doc.data().current;
 
-    finishBtn.classList.add("hidden");
-    lockedBtn.classList.add("hidden");
-
-    let text="MENUNGGU";
-    let cls="wait";
-
+    /* 🔥 AUTO RESET JIKA ANTRIAN SUDAH LEWAT */
     if(myNumber < current){
-      text="SELESAI ✅";
-      cls="done";
+      localStorage.removeItem("queue_number");
+      localStorage.removeItem("queue_name");
+      localStorage.removeItem("queue_plate");
+      location.reload();
+      return;
     }
-    else if(myNumber === current){
+
+    let text="MENUNGGU", cls="wait";
+    finishBtn.classList.add("hidden");
+
+    if(myNumber===current){
       text="SEKARANG GILIRAN KAMU 🔌";
       cls="now";
-
-      const qSnap = await db.collection("queue")
-        .where("number","==",myNumber).limit(1).get();
-
-      if(!qSnap.empty && qSnap.docs[0].data().deviceId===deviceId){
-        finishBtn.classList.remove("hidden");
-      }else{
-        lockedBtn.classList.remove("hidden");
-      }
+      finishBtn.classList.remove("hidden");
     }
-    else if(myNumber === current+1){
+    else if(myNumber===current+1){
       text="BERSIAP ⚠️";
       cls="ready";
     }
@@ -212,6 +206,7 @@ function listenStatus(){
   });
 }
 
+/* SELESAI */
 async function selesaiMengisi(){
   const ref=db.collection("meta").doc("state");
   const snap=await ref.get();
