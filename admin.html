@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Charger</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="text-align:center;font-family:Arial">
+
+<h2>ADMIN CHARGER</h2>
+<button onclick="next()">NEXT</button>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCIdveFrv0s1sD4N1sID8x0DH2RKgo5LJg",
+  authDomain: "queue-charge.firebaseapp.com",
+  projectId: "queue-charge",
+  storageBucket: "queue-charge.firebasestorage.app",
+  messagingSenderId: "1057500450444",
+  appId: "1:1057500450444:web:d1bea6286d1b283408f5a9",
+  measurementId: "G-QG2W06WJXT"
+};
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  async function next() {
+    const ref = db.collection("meta").doc("state");
+    const snap = await ref.get();
+    const current = snap.exists ? snap.data().current : 0;
+    await ref.set({ current: current + 1 });
+    alert("Antrian lanjut");
+  }
+</script>
+
+</body>
+</html>

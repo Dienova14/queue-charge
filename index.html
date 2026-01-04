@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Antrian Charger Motor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8fafc;
+      padding: 20px;
+      text-align: center;
+    }
+    .box {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      max-width: 400px;
+      margin: auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,.08);
+    }
+    .status {
+      font-size: 18px;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="box">
+  <h2>🔌 Antrian Charger Motor</h2>
+
+  <p id="info">Belum ambil antrian</p>
+
+  <button onclick="ambilAntrian()">Ambil Antrian</button>
+
+  <div class="status" id="status"></div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCIdveFrv0s1sD4N1sID8x0DH2RKgo5LJg",
+  authDomain: "queue-charge.firebaseapp.com",
+  projectId: "queue-charge",
+  storageBucket: "queue-charge.firebasestorage.app",
+  messagingSenderId: "1057500450444",
+  appId: "1:1057500450444:web:d1bea6286d1b283408f5a9",
+  measurementId: "G-QG2W06WJXT"
+};
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  const deviceId = localStorage.getItem("device_id") || (() => {
+    const id = crypto.randomUUID();
+    localStorage.setItem("device_id", id);
+    return id;
+  })();
+
+  let myNumber = localStorage.getItem("queue_number");
+
+  async function ambilAntrian() {
+    if (myNumber) return;
+
+    const snap = await db.collection("queue").orderBy("number", "desc").limit(1).get();
+    const last = snap.empty ? 0 : snap.docs[0].data().number;
+    myNumber = last + 1;
+
+    await db.collection("queue").add({
+      number: myNumber,
+      deviceId,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    localStorage.setItem("queue_number", myNumber);
+  }
+
+  db.collection("meta").doc("state").onSnapshot(doc => {
+    if (!doc.exists || !myNumber) return;
+
+    const current = doc.data().current;
+    let status = "MENUNGGU";
+
+    if (myNumber == current) status = "SEKARANG 🔌";
+    else if (myNumber == current + 1) status = "BERSIAP ⚠️";
+
+    document.getElementById("info").innerHTML = `
+      Nomor Kamu: <b>#${myNumber}</b><br>
+      Sekarang: <b>#${current}</b>
+    `;
+    document.getElementById("status").innerText = status;
+  });
+</script>
+
+</body>
+</html>
