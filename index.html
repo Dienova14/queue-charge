@@ -10,18 +10,18 @@
     font-family: 'Segoe UI', Arial, sans-serif;
     background: #f3f6fb;
     min-height: 100vh;
+    margin: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 0;
   }
 
   .card {
     background: #fff;
     width: 100%;
     max-width: 420px;
-    border-radius: 16px;
     padding: 24px;
+    border-radius: 16px;
     box-shadow: 0 20px 40px rgba(0,0,0,.08);
     text-align: center;
   }
@@ -59,11 +59,6 @@
     margin-top: 12px;
   }
 
-  .btn-primary:disabled {
-    background: #94a3b8;
-    cursor: not-allowed;
-  }
-
   .info {
     margin-top: 16px;
     font-size: 15px;
@@ -76,9 +71,9 @@
     font-size: 18px;
   }
 
-  .status.wait { color: #64748b; }
-  .status.ready { color: #f59e0b; }
-  .status.now { color: #16a34a; }
+  .wait { color: #64748b; }
+  .ready { color: #f59e0b; }
+  .now { color: #16a34a; }
 
   /* Popup */
   .popup {
@@ -94,8 +89,8 @@
     background: white;
     padding: 20px;
     border-radius: 14px;
-    text-align: center;
     width: 280px;
+    text-align: center;
   }
 
   .popup-box button {
@@ -116,10 +111,10 @@
     <button class="btn-primary" onclick="ambilAntrian()">Ambil Antrian</button>
   </div>
 
-  <!-- INFO -->
+  <!-- RESULT -->
   <div id="result" style="display:none">
     <div class="info" id="info"></div>
-    <div class="status" id="status"></div>
+    <div class="status wait" id="status"></div>
     <button class="btn-danger" onclick="resetLocal()">Ambil Ulang</button>
   </div>
 </div>
@@ -138,6 +133,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
+/* ================= FIREBASE ================= */
 const firebaseConfig = {
   apiKey: "AIzaSyCIdveFrv0s1sD4N1sID8x0DH2RKgo5LJg",
   authDomain: "queue-charge.firebaseapp.com",
@@ -150,26 +146,47 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+/* ================= STATE ================= */
 let myNumber = Number(localStorage.getItem("queue_number"));
 
 init();
 
+/* ================= INIT ================= */
 function init() {
   if (myNumber) {
-    showResult();
+    renderInfo("-");
+    listenStatus();
   }
 }
 
+/* ================= RENDER ================= */
+function renderInfo(current) {
+  document.getElementById("form").style.display = "none";
+  document.getElementById("result").style.display = "block";
+
+  document.getElementById("info").innerHTML = `
+    Nama: <b>${localStorage.getItem("queue_name")}</b><br>
+    Plat: <b>${localStorage.getItem("queue_plate")}</b><br><br>
+    Nomor Kamu: <b>#${myNumber}</b><br>
+    Sekarang: <b>${current}</b>
+  `;
+}
+
+/* ================= AMBIL ANTRIAN ================= */
 async function ambilAntrian() {
   const name = document.getElementById("name").value.trim();
   const plate = document.getElementById("plate").value.trim().toUpperCase();
 
   if (!name || !plate) {
-    alert("Nama & plat wajib diisi");
+    alert("Nama dan plat wajib diisi");
     return;
   }
 
-  const snap = await db.collection("queue").orderBy("number", "desc").limit(1).get();
+  const snap = await db.collection("queue")
+    .orderBy("number", "desc")
+    .limit(1)
+    .get();
+
   myNumber = snap.empty ? 1 : snap.docs[0].data().number + 1;
 
   await db.collection("queue").add({
@@ -184,43 +201,41 @@ async function ambilAntrian() {
   localStorage.setItem("queue_plate", plate);
 
   showPopup();
-  showResult();
+
+  // 🔥 render LANGSUNG (tanpa nunggu snapshot)
+  renderInfo("...");
+
+  listenStatus();
 }
 
-function showResult() {
-  document.getElementById("form").style.display = "none";
-  document.getElementById("result").style.display = "block";
+/* ================= REALTIME STATUS ================= */
+function listenStatus() {
+  db.collection("meta").doc("state").onSnapshot(doc => {
+    if (!doc.exists || !myNumber) return;
+
+    const current = doc.data().current;
+    let text = "MENUNGGU";
+    let cls = "wait";
+
+    if (myNumber === current) {
+      text = "SEKARANG 🔌";
+      cls = "now";
+    } else if (myNumber === current + 1) {
+      text = "BERSIAP ⚠️";
+      cls = "ready";
+    }
+
+    renderInfo(current);
+
+    const s = document.getElementById("status");
+    s.className = "status " + cls;
+    s.innerText = text;
+  });
 }
 
-db.collection("meta").doc("state").onSnapshot(doc => {
-  if (!doc.exists || !myNumber) return;
-
-  const current = doc.data().current;
-  let status = "MENUNGGU";
-  let cls = "wait";
-
-  if (myNumber === current) {
-    status = "SEKARANG 🔌";
-    cls = "now";
-  } else if (myNumber === current + 1) {
-    status = "BERSIAP ⚠️";
-    cls = "ready";
-  }
-
-  document.getElementById("info").innerHTML = `
-    Nama: <b>${localStorage.getItem("queue_name")}</b><br>
-    Plat: <b>${localStorage.getItem("queue_plate")}</b><br><br>
-    Nomor Kamu: <b>#${myNumber}</b><br>
-    Sekarang: <b>#${current}</b>
-  `;
-
-  const s = document.getElementById("status");
-  s.className = "status " + cls;
-  s.innerText = status;
-});
-
+/* ================= UTIL ================= */
 function resetLocal() {
-  if (!confirm("Yakin ingin ambil ulang?")) return;
+  if (!confirm("Yakin ingin ambil antrian ulang?")) return;
   localStorage.clear();
   location.reload();
 }
