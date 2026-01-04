@@ -2,177 +2,113 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Antrian Charger Motor</title>
+<title>Charger Motor</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 :root {
-  --primary: #2563eb;
-  --success: #16a34a;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --text: #0f172a;
-  --muted: #64748b;
-  --border: #e2e8f0;
-  --bg: #f1f5f9;
+  --primary:#2563eb;
+  --success:#16a34a;
+  --warning:#f59e0b;
+  --danger:#ef4444;
+  --text:#0f172a;
+  --muted:#64748b;
+  --bg:#f1f5f9;
+  --border:#e2e8f0;
 }
 
-* { box-sizing: border-box; }
+*{box-sizing:border-box}
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+body{
+  margin:0;
+  min-height:100vh;
+  font-family:"Inter","Segoe UI",system-ui,sans-serif;
   background:
-    radial-gradient(1200px 400px at 10% -10%, #dbeafe, transparent),
+    radial-gradient(1000px 400px at 10% -10%, #dbeafe, transparent),
     radial-gradient(800px 300px at 90% 10%, #e0f2fe, transparent),
     var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
 }
 
-.app {
-  width: 100%;
-  max-width: 420px;
-  background: white;
-  border-radius: 24px;
-  padding: 28px;
-  box-shadow:
-    0 20px 40px rgba(0,0,0,.08),
-    0 4px 12px rgba(0,0,0,.05);
+.app{
+  width:100%;
+  max-width:420px;
+  background:white;
+  border-radius:24px;
+  padding:28px;
+  box-shadow:0 20px 40px rgba(0,0,0,.08);
 }
 
 /* HEADER */
-.header {
-  text-align: center;
-  margin-bottom: 24px;
-}
-.header h1 {
-  font-size: 22px;
-  margin: 0 0 6px;
-}
-.header p {
-  margin: 0;
-  font-size: 14px;
-  color: var(--muted);
-}
+.header{text-align:center;margin-bottom:24px}
+.header h1{margin:0 0 6px;font-size:22px}
+.header p{margin:0;font-size:14px;color:var(--muted)}
 
 /* FORM */
-.field {
-  margin-bottom: 14px;
+.field{margin-bottom:14px}
+.label{font-size:13px;color:var(--muted);margin-bottom:6px;display:block}
+input{
+  width:100%;
+  padding:14px 16px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  font-size:15px;
 }
-.label {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 6px;
-  display: block;
-}
-input {
-  width: 100%;
-  padding: 14px 16px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  font-size: 15px;
-  transition: .2s;
-}
-input:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+input:focus{
+  outline:none;
+  border-color:var(--primary);
+  box-shadow:0 0 0 3px rgba(37,99,235,.15);
 }
 
 /* BUTTON */
-button {
-  width: 100%;
-  padding: 15px;
-  border-radius: 16px;
-  border: none;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: .2s;
+button{
+  width:100%;
+  padding:15px;
+  border-radius:16px;
+  border:none;
+  font-size:16px;
+  font-weight:600;
+  cursor:pointer;
 }
-button:active { transform: scale(.97); }
+.btn-primary{
+  background:linear-gradient(135deg,#2563eb,#1d4ed8);
+  color:white;
+}
+.btn-success{
+  background:linear-gradient(135deg,#16a34a,#15803d);
+  color:white;
+}
+.btn-disabled{
+  background:#e5e7eb;
+  color:#9ca3af;
+  cursor:not-allowed;
+}
 
-.btn-primary {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: white;
+/* INFO CARD */
+.card-info{
+  background:#f8fafc;
+  border-radius:18px;
+  padding:18px;
+  margin-bottom:14px;
 }
-.btn-danger {
-  background: #fee2e2;
-  color: #b91c1c;
-  margin-top: 18px;
-}
-
-/* RESULT */
-.result {
-  display: none;
-}
-.card-info {
-  background: #f8fafc;
-  border-radius: 18px;
-  padding: 18px;
-  margin-bottom: 14px;
-}
-.card-info div {
-  font-size: 15px;
-  margin-bottom: 6px;
-}
-.card-info b {
-  color: var(--text);
-}
+.card-info div{font-size:15px;margin-bottom:6px}
 
 /* STATUS */
-.status {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 14px;
-  border-radius: 16px;
-  font-size: 17px;
-  font-weight: 700;
+.status{
+  padding:16px;
+  border-radius:18px;
+  font-size:18px;
+  font-weight:800;
+  text-align:center;
 }
-.wait {
-  background: #f1f5f9;
-  color: var(--muted);
-}
-.ready {
-  background: #fef3c7;
-  color: var(--warning);
-}
-.now {
-  background: #dcfce7;
-  color: var(--success);
-}
+.wait{background:#f1f5f9;color:var(--muted)}
+.ready{background:#fef3c7;color:var(--warning)}
+.now{background:#dcfce7;color:var(--success)}
 
-/* POPUP */
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15,23,42,.45);
-  display: none;
-  align-items: center;
-  justify-content: center;
-}
-.modal {
-  background: white;
-  border-radius: 22px;
-  padding: 24px;
-  width: 300px;
-  text-align: center;
-  box-shadow: 0 25px 50px rgba(0,0,0,.2);
-}
-.modal h3 {
-  margin: 0 0 8px;
-  color: var(--success);
-}
-.modal p {
-  font-size: 14px;
-  color: var(--muted);
-  margin: 0 0 16px;
-}
+.hidden{display:none}
 </style>
 </head>
 
@@ -191,30 +127,22 @@ button:active { transform: scale(.97); }
       <label class="label">Nama</label>
       <input id="name" placeholder="Masukkan nama">
     </div>
-
     <div class="field">
       <label class="label">Plat Nomor</label>
       <input id="plate" placeholder="B 1234 ABC">
     </div>
-
     <button class="btn-primary" onclick="ambilAntrian()">Ambil Antrian</button>
   </div>
 
   <!-- RESULT -->
-  <div class="result" id="result">
+  <div id="result" class="hidden">
     <div class="card-info" id="info"></div>
-    <div class="status wait" id="status"></div>
-    <button class="btn-danger" onclick="resetQueue()">Ambil Antrian Ulang</button>
+    <div class="status wait" id="statusBox"></div>
+    <button id="finishBtn" class="btn-success hidden" onclick="selesaiMengisi()">
+      Selesai Mengisi
+    </button>
   </div>
-</div>
 
-<!-- POPUP -->
-<div class="overlay" id="popup">
-  <div class="modal">
-    <h3>✅ Antrian Berhasil</h3>
-    <p>Silakan tunggu sampai status berubah menjadi SEKARANG</p>
-    <button class="btn-primary" onclick="closePopup()">Mengerti</button>
-  </div>
 </div>
 
 <!-- Firebase -->
@@ -223,59 +151,45 @@ button:active { transform: scale(.97); }
 
 <script>
 firebase.initializeApp({
-  apiKey: "AIzaSyCIdveFrv0s1sD4N1sID8x0DH2RKgo5LJg",
-  authDomain: "queue-charge.firebaseapp.com",
-  projectId: "queue-charge"
+  apiKey:"AIzaSyCIdveFrv0s1sD4N1sID8x0DH2RKgo5LJg",
+  authDomain:"queue-charge.firebaseapp.com",
+  projectId:"queue-charge"
 });
-const db = firebase.firestore();
+const db=firebase.firestore();
 
-let myNumber = Number(localStorage.getItem("queue_number"));
-let notified = localStorage.getItem("queue_notified") === "true";
+let myNumber=Number(localStorage.getItem("queue_number"));
 
-if (myNumber) {
-  renderInfo("-");
+if(myNumber){
+  showResult("-");
   listenStatus();
 }
 
-requestNotif();
+async function ambilAntrian(){
+  const name=document.getElementById("name").value.trim();
+  const plate=document.getElementById("plate").value.trim().toUpperCase();
+  if(!name||!plate)return alert("Nama & plat wajib diisi");
 
-async function ambilAntrian() {
-  const name = document.getElementById("name").value.trim();
-  const plate = document.getElementById("plate").value.trim().toUpperCase();
-
-  if (!name || !plate) {
-    alert("Nama dan plat wajib diisi");
-    return;
-  }
-
-  const snap = await db.collection("queue")
-    .orderBy("number","desc").limit(1).get();
-
-  myNumber = snap.empty ? 1 : snap.docs[0].data().number + 1;
+  const snap=await db.collection("queue").get();
+  myNumber=snap.docs.length+1;
 
   await db.collection("queue").add({
-    number: myNumber,
-    name,
-    plate,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    number:myNumber,name,plate,
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  localStorage.setItem("queue_number", myNumber);
-  localStorage.setItem("queue_name", name);
-  localStorage.setItem("queue_plate", plate);
-  localStorage.removeItem("queue_notified");
-  notified = false;
+  localStorage.setItem("queue_number",myNumber);
+  localStorage.setItem("queue_name",name);
+  localStorage.setItem("queue_plate",plate);
 
-  renderInfo("...");
-  showPopup();
+  showResult("...");
   listenStatus();
 }
 
-function renderInfo(current) {
-  form.style.display = "none";
-  result.style.display = "block";
+function showResult(current){
+  form.style.display="none";
+  result.classList.remove("hidden");
 
-  info.innerHTML = `
+  info.innerHTML=`
     <div>Nama: <b>${localStorage.getItem("queue_name")}</b></div>
     <div>Plat: <b>${localStorage.getItem("queue_plate")}</b></div>
     <div>Nomor Antrian: <b>#${myNumber}</b></div>
@@ -283,55 +197,41 @@ function renderInfo(current) {
   `;
 }
 
-function listenStatus() {
-  db.collection("meta").doc("state").onSnapshot(doc => {
-    if (!doc.exists) return;
+function listenStatus(){
+  db.collection("meta").doc("state").onSnapshot(doc=>{
+    if(!doc.exists)return;
+    const current=doc.data().current;
 
-    const current = doc.data().current;
-    let text = "MENUNGGU", cls = "wait";
+    let text="MENUNGGU";
+    let cls="wait";
 
-    if (myNumber === current) {
-      text = "SEKARANG 🔌";
-      cls = "now";
-      notify();
-    } else if (myNumber === current + 1) {
-      text = "BERSIAP ⚠️";
-      cls = "ready";
+    finishBtn.classList.add("hidden");
+
+    if(myNumber===current){
+      text="SEKARANG GILIRAN KAMU 🔌";
+      cls="now";
+      finishBtn.classList.remove("hidden");
+    }else if(myNumber===current+1){
+      text="BERSIAP ⚠️";
+      cls="ready";
     }
 
-    renderInfo(current);
-    status.className = "status " + cls;
-    status.innerText = text;
+    showResult(current);
+    statusBox.className="status "+cls;
+    statusBox.innerText=text;
   });
 }
 
-function requestNotif() {
-  if ("Notification" in window && Notification.permission === "default") {
-    Notification.requestPermission();
-  }
-}
+/* === SELESAI MENGISI (NEXT) === */
+async function selesaiMengisi(){
+  const ref=db.collection("meta").doc("state");
+  const snap=await ref.get();
+  const current=snap.exists?snap.data().current:0;
+  await ref.set({current:current+1});
 
-function notify() {
-  if (!("Notification" in window)) return;
-  if (Notification.permission !== "granted") return;
-  if (notified) return;
-
-  new Notification("🔌 Giliran Kamu", {
-    body: "Silakan segera menuju charger motor."
-  });
-
-  notified = true;
-  localStorage.setItem("queue_notified", "true");
-}
-
-function resetQueue() {
-  if (!confirm("Ambil antrian ulang?")) return;
   localStorage.clear();
   location.reload();
 }
-
-function showPopup() { popup.style.display = "flex"; }
-function closePopup() { popup.style.display = "none"; }
 </script>
 
 </body>
