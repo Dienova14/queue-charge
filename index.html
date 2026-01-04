@@ -8,22 +8,26 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f8fafc;
+      background: #f5f7fb;
       padding: 20px;
-      text-align: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
     }
 
     .box {
       background: white;
-      padding: 20px;
-      border-radius: 12px;
+      padding: 24px;
+      border-radius: 14px;
+      width: 100%;
       max-width: 420px;
-      margin: auto;
-      box-shadow: 0 10px 30px rgba(0,0,0,.08);
+      box-shadow: 0 15px 40px rgba(0,0,0,.08);
+      text-align: center;
     }
 
     h2 {
-      margin-bottom: 15px;
+      margin-bottom: 18px;
     }
 
     input {
@@ -44,7 +48,7 @@
       background: #2563eb;
       color: white;
       cursor: pointer;
-      margin-top: 5px;
+      margin-top: 6px;
     }
 
     button:disabled {
@@ -53,12 +57,13 @@
     }
 
     .info {
-      margin-top: 15px;
+      margin-top: 16px;
       font-size: 15px;
+      line-height: 1.6;
     }
 
     .status {
-      margin-top: 10px;
+      margin-top: 12px;
       font-weight: bold;
       font-size: 18px;
     }
@@ -84,7 +89,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
-  // 🔥 Firebase Config (punya kamu)
+  // 🔥 Firebase Config
   const firebaseConfig = {
     apiKey: "AIzaSyCIdveFrv0s1sD4N1sID8x0DH2RKgo5LJg",
     authDomain: "queue-charge.firebaseapp.com",
@@ -106,12 +111,21 @@
 
   let myNumber = Number(localStorage.getItem("queue_number"));
 
+  // 🔁 Jika sudah ambil antrian sebelumnya
+  if (myNumber) {
+    document.getElementById("name").value = localStorage.getItem("queue_name") || "";
+    document.getElementById("plate").value = localStorage.getItem("queue_plate") || "";
+    document.getElementById("name").disabled = true;
+    document.getElementById("plate").disabled = true;
+    document.getElementById("btn").disabled = true;
+  }
+
   // 🟢 Ambil Antrian
   async function ambilAntrian() {
     if (myNumber && myNumber > 0) return;
 
     const name = document.getElementById("name").value.trim();
-    const plate = document.getElementById("plate").value.trim();
+    const plate = document.getElementById("plate").value.trim().toUpperCase();
 
     if (!name || !plate) {
       alert("Nama dan plat nomor wajib diisi");
@@ -129,21 +143,23 @@
 
     await db.collection("queue").add({
       number: myNumber,
-      name: name,
-      plate: plate.toUpperCase(),
-      deviceId: deviceId,
+      name,
+      plate,
+      deviceId,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
     localStorage.setItem("queue_number", myNumber);
+    localStorage.setItem("queue_name", name);
+    localStorage.setItem("queue_plate", plate);
 
     document.getElementById("name").disabled = true;
     document.getElementById("plate").disabled = true;
     document.getElementById("btn").disabled = true;
   }
 
-  // 🔄 Realtime Status
-  db.collection("meta").doc("state").onSnapshot(async doc => {
+  // 🔄 Realtime Status (HANYA status, data user dari localStorage)
+  db.collection("meta").doc("state").onSnapshot(doc => {
     if (!doc.exists || !myNumber) return;
 
     const current = doc.data().current;
@@ -152,17 +168,12 @@
     if (myNumber === current) statusText = "SEKARANG 🔌";
     else if (myNumber === current + 1) statusText = "BERSIAP ⚠️";
 
-    const qSnap = await db
-      .collection("queue")
-      .where("number", "==", myNumber)
-      .limit(1)
-      .get();
-
-    const data = qSnap.docs[0]?.data();
+    const name = localStorage.getItem("queue_name");
+    const plate = localStorage.getItem("queue_plate");
 
     document.getElementById("info").innerHTML = `
-      Nama: <b>${data?.name}</b><br>
-      Plat: <b>${data?.plate}</b><br><br>
+      Nama: <b>${name}</b><br>
+      Plat: <b>${plate}</b><br><br>
       Nomor Kamu: <b>#${myNumber}</b><br>
       Sekarang: <b>#${current}</b>
     `;
