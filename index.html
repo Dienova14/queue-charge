@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Antrian Charger Motor</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -11,27 +12,18 @@
       padding: 20px;
       text-align: center;
     }
+
     .box {
       background: white;
       padding: 20px;
       border-radius: 12px;
-      max-width: 400px;
+      max-width: 420px;
       margin: auto;
       box-shadow: 0 10px 30px rgba(0,0,0,.08);
     }
-    .status {
-      font-size: 18px;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-    button {
-      padding: 12px 20px;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      background: #2563eb;
-      color: white;
-      cursor: pointer;
+
+    h2 {
+      margin-bottom: 15px;
     }
 
     input {
@@ -43,8 +35,36 @@
       font-size: 14px;
     }
 
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+
+    button:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    .info {
+      margin-top: 15px;
+      font-size: 15px;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-weight: bold;
+      font-size: 18px;
+    }
   </style>
 </head>
+
 <body>
 
 <div class="box">
@@ -53,75 +73,103 @@
   <input id="name" placeholder="Nama" />
   <input id="plate" placeholder="Plat Nomor (B 1234 ABC)" />
 
-  <button onclick="ambilAntrian()">Ambil Antrian</button>
+  <button id="btn" onclick="ambilAntrian()">Ambil Antrian</button>
 
-  <p id="info">Belum ambil antrian</p>
+  <div class="info" id="info">Belum ambil antrian</div>
   <div class="status" id="status"></div>
 </div>
-
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
+  // 🔥 Firebase Config (punya kamu)
   const firebaseConfig = {
     apiKey: "AIzaSyCIdveFrv0s1sD4N1sID8x0DH2RKgo5LJg",
-  authDomain: "queue-charge.firebaseapp.com",
-  projectId: "queue-charge",
-  storageBucket: "queue-charge.firebasestorage.app",
-  messagingSenderId: "1057500450444",
-  appId: "1:1057500450444:web:d1bea6286d1b283408f5a9",
-  measurementId: "G-QG2W06WJXT"
-};
+    authDomain: "queue-charge.firebaseapp.com",
+    projectId: "queue-charge",
+    storageBucket: "queue-charge.firebasestorage.app",
+    messagingSenderId: "1057500450444",
+    appId: "1:1057500450444:web:d1bea6286d1b283408f5a9"
+  };
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
+  // 🔑 Device ID
   const deviceId = localStorage.getItem("device_id") || (() => {
     const id = crypto.randomUUID();
     localStorage.setItem("device_id", id);
     return id;
   })();
 
-  let myNumber = localStorage.getItem("queue_number");
+  let myNumber = Number(localStorage.getItem("queue_number"));
 
+  // 🟢 Ambil Antrian
   async function ambilAntrian() {
-  if (myNumber && myNumber > 0) return;
+    if (myNumber && myNumber > 0) return;
 
-  const name = document.getElementById("name").value.trim();
-  const plate = document.getElementById("plate").value.trim();
+    const name = document.getElementById("name").value.trim();
+    const plate = document.getElementById("plate").value.trim();
 
-  if (!name || !plate) {
-    alert("Nama dan plat nomor wajib diisi");
-    return;
+    if (!name || !plate) {
+      alert("Nama dan plat nomor wajib diisi");
+      return;
+    }
+
+    const snap = await db
+      .collection("queue")
+      .orderBy("number", "desc")
+      .limit(1)
+      .get();
+
+    const last = snap.empty ? 0 : snap.docs[0].data().number;
+    myNumber = last + 1;
+
+    await db.collection("queue").add({
+      number: myNumber,
+      name: name,
+      plate: plate.toUpperCase(),
+      deviceId: deviceId,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    localStorage.setItem("queue_number", myNumber);
+
+    document.getElementById("name").disabled = true;
+    document.getElementById("plate").disabled = true;
+    document.getElementById("btn").disabled = true;
   }
 
-  const snap = await db
-    .collection("queue")
-    .orderBy("number", "desc")
-    .limit(1)
-    .get();
+  // 🔄 Realtime Status
+  db.collection("meta").doc("state").onSnapshot(async doc => {
+    if (!doc.exists || !myNumber) return;
 
-  const last = snap.empty ? 0 : snap.docs[0].data().number;
-  myNumber = last + 1;
+    const current = doc.data().current;
+    let statusText = "MENUNGGU";
 
-  await db.collection("queue").add({
-    number: myNumber,
-    name: name,
-    plate: plate.toUpperCase(),
-    deviceId,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    if (myNumber === current) statusText = "SEKARANG 🔌";
+    else if (myNumber === current + 1) statusText = "BERSIAP ⚠️";
+
+    const qSnap = await db
+      .collection("queue")
+      .where("number", "==", myNumber)
+      .limit(1)
+      .get();
+
+    const data = qSnap.docs[0]?.data();
+
+    document.getElementById("info").innerHTML = `
+      Nama: <b>${data?.name}</b><br>
+      Plat: <b>${data?.plate}</b><br><br>
+      Nomor Kamu: <b>#${myNumber}</b><br>
+      Sekarang: <b>#${current}</b>
+    `;
+
+    document.getElementById("status").innerText = statusText;
   });
-
-  localStorage.setItem("queue_number", myNumber);
-
-  document.getElementById("name").disabled = true;
-  document.getElementById("plate").disabled = true;
-}
-
 </script>
 
 </body>
 </html>
-
