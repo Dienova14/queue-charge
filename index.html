@@ -1,121 +1,266 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
 <meta charset="UTF-8">
 <title>Charger Motor</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style>
-body{font-family:Inter,system-ui;background:#f1f5f9;display:flex;justify-content:center}
-.app{background:#fff;padding:24px;border-radius:20px;width:100%;max-width:420px;margin-top:40px}
-button{padding:14px;border-radius:14px;border:none;background:#2563eb;color:#fff;font-weight:600;width:100%}
-.status{margin-top:14px;padding:14px;border-radius:14px;font-weight:700;text-align:center}
-.now{background:#dcfce7;color:#16a34a}
-.wait{background:#e5e7eb}
+:root{
+  --primary:#2563eb;
+  --success:#16a34a;
+  --warning:#f59e0b;
+  --muted:#64748b;
+  --bg:#f1f5f9;
+  --card:#ffffff;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  font-family:Inter,Segoe UI,system-ui,sans-serif;
+  background:
+    radial-gradient(1000px 400px at 10% -10%, #dbeafe, transparent),
+    radial-gradient(800px 300px at 90% 10%, #e0f2fe, transparent),
+    var(--bg);
+  display:flex;
+  justify-content:center;
+  padding:20px;
+}
+.app{
+  width:100%;
+  max-width:420px;
+  background:var(--card);
+  border-radius:26px;
+  padding:26px;
+  box-shadow:0 25px 50px rgba(0,0,0,.1);
+}
+
+/* HEADER */
+.header{text-align:center;margin-bottom:22px}
+.header h1{margin:0;font-size:22px}
+.header p{margin:6px 0 0;font-size:14px;color:var(--muted)}
+
+/* FORM */
+.field{margin-bottom:14px}
+label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+input{
+  width:100%;
+  padding:14px 16px;
+  border-radius:14px;
+  border:1px solid #e5e7eb;
+  font-size:15px;
+}
+
+/* BUTTON */
+button{
+  width:100%;
+  padding:15px;
+  border-radius:16px;
+  border:none;
+  font-size:16px;
+  font-weight:600;
+  cursor:pointer;
+}
+.btn-primary{
+  background:linear-gradient(135deg,#2563eb,#1d4ed8);
+  color:white;
+}
+.btn-success{
+  background:linear-gradient(135deg,#16a34a,#15803d);
+  color:white;
+}
+
+/* INFO CARD */
+.card{
+  background:#f8fafc;
+  border-radius:18px;
+  padding:18px;
+  margin-bottom:14px;
+  font-size:15px;
+}
+
+/* STATUS */
+.status{
+  padding:16px;
+  border-radius:18px;
+  font-size:18px;
+  font-weight:800;
+  text-align:center;
+}
+.wait{background:#e5e7eb;color:var(--muted)}
+.ready{background:#fef3c7;color:var(--warning)}
+.now{background:#dcfce7;color:var(--success)}
+
 .hidden{display:none}
 </style>
 </head>
+
 <body>
 
 <div class="app">
-  <h2>🔌 Charger Motor</h2>
 
+  <div class="header">
+    <h1>🔌 Charger Motor</h1>
+    <p>Antrian pengisian daya</p>
+  </div>
+
+  <!-- FORM -->
   <div id="form">
-    <input id="name" placeholder="Nama"><br><br>
-    <input id="plate" placeholder="Plat Nomor"><br><br>
-    <button onclick="ambil()">Ambil Antrian</button>
+    <div class="field">
+      <label>Nama</label>
+      <input id="name" placeholder="Nama kamu">
+    </div>
+    <div class="field">
+      <label>Plat Nomor</label>
+      <input id="plate" placeholder="B 1234 ABC">
+    </div>
+    <button class="btn-primary" onclick="ambilAntrian()">Ambil Antrian</button>
   </div>
 
+  <!-- RESULT -->
   <div id="result" class="hidden">
-    <div id="info"></div>
-    <div id="status" class="status wait"></div>
-    <button id="finish" class="hidden" onclick="selesai()">Selesai</button>
+    <div class="card" id="info"></div>
+    <div class="status wait" id="statusBox"></div>
+    <button id="finishBtn" class="btn-success hidden" onclick="selesai()">Selesai Mengisi</button>
   </div>
+
 </div>
 
+<!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
 <script>
 firebase.initializeApp({
   apiKey:"AIzaSyCIdveFrv0s1sD4N1sID8x0DH2RKgo5LJg",
   projectId:"queue-charge"
 });
-const db=firebase.firestore();
+const db = firebase.firestore();
 
-let deviceId=localStorage.deviceId||(localStorage.deviceId=crypto.randomUUID());
-let myNumber=+localStorage.queue_number;
-let mySlot=localStorage.queue_slot;
-
-if(myNumber) listen();
-
-async function ambil(){
-  const name=nameInput.value.trim();
-  const plate=plateInput.value.trim();
-  if(!name||!plate)return alert("Lengkapi data");
-
-  const meta=await db.collection("meta").doc("state").get();
-  const slots=meta.data().slots;
-
-  // cari slot kosong
-  let slot=Object.keys(slots).find(s=>slots[s].current===0);
-  if(!slot) slot="A"; // fallback
-
-  const qSnap=await db.collection("queue").get();
-  myNumber=qSnap.docs.length+1;
-  mySlot=slot;
-
-  await db.collection("queue").add({
-    number:myNumber,name,plate,slot,deviceId
-  });
-
-  if(slots[slot].current===0){
-    await db.collection("meta").doc("state")
-      .update({[`slots.${slot}.current`]:myNumber});
-  }
-
-  localStorage.queue_number=myNumber;
-  localStorage.queue_slot=mySlot;
-
-  listen();
+/* ========= DEVICE LOCK ========= */
+let deviceId = localStorage.getItem("device_id");
+if(!deviceId){
+  deviceId = crypto.randomUUID();
+  localStorage.setItem("device_id", deviceId);
 }
 
-function listen(){
+/* ========= LOAD STATE ========= */
+let myNumber = Number(localStorage.getItem("queue_number"));
+let mySlot = localStorage.getItem("queue_slot");
+
+/* VALIDASI STORAGE */
+if (!Number.isNaN(myNumber) && myNumber > 0 && mySlot) {
+  startListen();
+} else {
+  showForm();
+}
+
+/* ========= AMBIL ANTRIAN ========= */
+async function ambilAntrian(){
+  const name = nameInput.value.trim();
+  const plate = plateInput.value.trim().toUpperCase();
+  if(!name || !plate) return alert("Nama & plat wajib diisi");
+
+  const metaSnap = await db.collection("meta").doc("state").get();
+  const slots = metaSnap.data().slots;
+
+  // pilih slot kosong
+  let slot = Object.keys(slots).find(s => slots[s].current === 0);
+  if(!slot) slot = "A"; // fallback aman
+
+  const qSnap = await db.collection("queue").get();
+  myNumber = qSnap.docs.length + 1;
+  mySlot = slot;
+
+  await db.collection("queue").add({
+    number: myNumber,
+    name,
+    plate,
+    slot: mySlot,
+    deviceId,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  // AUTO START SLOT
+  if (slots[mySlot].current === 0) {
+    await db.collection("meta").doc("state")
+      .update({[`slots.${mySlot}.current`]: myNumber});
+  }
+
+  localStorage.setItem("queue_number", myNumber);
+  localStorage.setItem("queue_slot", mySlot);
+  localStorage.setItem("queue_name", name);
+  localStorage.setItem("queue_plate", plate);
+
+  startListen();
+}
+
+/* ========= LISTEN STATUS ========= */
+function startListen(){
   form.classList.add("hidden");
   result.classList.remove("hidden");
 
-  db.collection("meta").doc("state").onSnapshot(async d=>{
-    const current=d.data().slots[mySlot].current;
+  db.collection("meta").doc("state").onSnapshot(async snap=>{
+    if(!snap.exists) return;
+    const slotData = snap.data().slots?.[mySlot];
+    if(!slotData) return;
 
-    if(myNumber<current){
+    const current = slotData.current;
+
+    // AUTO RESET JIKA SUDAH LEWAT
+    if(myNumber < current){
       localStorage.clear();
       location.reload();
       return;
     }
 
-    info.innerHTML=`Nomor #${myNumber}<br>Slot ${mySlot}`;
-    finish.classList.add("hidden");
+    info.innerHTML = `
+      <b>Nama:</b> ${localStorage.getItem("queue_name")}<br>
+      <b>Plat:</b> ${localStorage.getItem("queue_plate")}<br>
+      <b>Nomor:</b> #${myNumber}<br>
+      <b>Slot:</b> ${mySlot}
+    `;
 
-    if(myNumber===current){
-      status.innerText="SEKARANG GILIRAN KAMU";
-      status.className="status now";
-      finish.classList.remove("hidden");
-    }else{
-      status.innerText="MENUNGGU";
-      status.className="status wait";
+    finishBtn.classList.add("hidden");
+
+    if(myNumber === current){
+      statusBox.innerText = "SEKARANG GILIRAN KAMU 🔌";
+      statusBox.className = "status now";
+      finishBtn.classList.remove("hidden");
+    }
+    else if(myNumber === current + 1){
+      statusBox.innerText = "BERSIAP ⚠️";
+      statusBox.className = "status ready";
+    }
+    else{
+      statusBox.innerText = "MENUNGGU";
+      statusBox.className = "status wait";
     }
   });
 }
 
+/* ========= SELESAI ========= */
 async function selesai(){
-  const ref=db.collection("meta").doc("state");
-  const snap=await ref.get();
-  const cur=snap.data().slots[mySlot].current;
-  await ref.update({[`slots.${mySlot}.current`]:cur+1});
+  const ref = db.collection("meta").doc("state");
+  const snap = await ref.get();
+  const cur = snap.data().slots[mySlot].current;
+
+  await ref.update({[`slots.${mySlot}.current`]: cur + 1});
+
   localStorage.clear();
   location.reload();
 }
 
-const nameInput=document.getElementById("name");
-const plateInput=document.getElementById("plate");
+/* ========= UI HELPERS ========= */
+function showForm(){
+  form.classList.remove("hidden");
+  result.classList.add("hidden");
+}
+
+const nameInput = document.getElementById("name");
+const plateInput = document.getElementById("plate");
 </script>
+
 </body>
 </html>
