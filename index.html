@@ -33,6 +33,16 @@
       color: white;
       cursor: pointer;
     }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      font-size: 14px;
+    }
+
   </style>
 </head>
 <body>
@@ -40,12 +50,15 @@
 <div class="box">
   <h2>🔌 Antrian Charger Motor</h2>
 
-  <p id="info">Belum ambil antrian</p>
+  <input id="name" placeholder="Nama" />
+  <input id="plate" placeholder="Plat Nomor (B 1234 ABC)" />
 
   <button onclick="ambilAntrian()">Ambil Antrian</button>
 
+  <p id="info">Belum ambil antrian</p>
   <div class="status" id="status"></div>
 </div>
+
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -74,37 +87,41 @@
   let myNumber = localStorage.getItem("queue_number");
 
   async function ambilAntrian() {
-    if (myNumber) return;
+  if (myNumber && myNumber > 0) return;
 
-    const snap = await db.collection("queue").orderBy("number", "desc").limit(1).get();
-    const last = snap.empty ? 0 : snap.docs[0].data().number;
-    myNumber = last + 1;
+  const name = document.getElementById("name").value.trim();
+  const plate = document.getElementById("plate").value.trim();
 
-    await db.collection("queue").add({
-      number: myNumber,
-      deviceId,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    localStorage.setItem("queue_number", myNumber);
+  if (!name || !plate) {
+    alert("Nama dan plat nomor wajib diisi");
+    return;
   }
 
-  db.collection("meta").doc("state").onSnapshot(doc => {
-    if (!doc.exists || !myNumber) return;
+  const snap = await db
+    .collection("queue")
+    .orderBy("number", "desc")
+    .limit(1)
+    .get();
 
-    const current = doc.data().current;
-    let status = "MENUNGGU";
+  const last = snap.empty ? 0 : snap.docs[0].data().number;
+  myNumber = last + 1;
 
-    if (myNumber == current) status = "SEKARANG 🔌";
-    else if (myNumber == current + 1) status = "BERSIAP ⚠️";
-
-    document.getElementById("info").innerHTML = `
-      Nomor Kamu: <b>#${myNumber}</b><br>
-      Sekarang: <b>#${current}</b>
-    `;
-    document.getElementById("status").innerText = status;
+  await db.collection("queue").add({
+    number: myNumber,
+    name: name,
+    plate: plate.toUpperCase(),
+    deviceId,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
+
+  localStorage.setItem("queue_number", myNumber);
+
+  document.getElementById("name").disabled = true;
+  document.getElementById("plate").disabled = true;
+}
+
 </script>
 
 </body>
 </html>
+
