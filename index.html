@@ -94,11 +94,11 @@ button{
   <div id="form">
     <div class="field">
       <label class="label">Nama</label>
-      <input id="name">
+      <input id="name" placeholder="Nama">
     </div>
     <div class="field">
       <label class="label">Plat Nomor</label>
-      <input id="plate">
+      <input id="plate" placeholder="B 1234 ABC">
     </div>
     <button class="btn-primary" onclick="ambilAntrian()">Ambil Antrian</button>
   </div>
@@ -143,25 +143,30 @@ if(myNumber){
   listenStatus();
 }
 
-/* ===== AMBIL ANTRIAN ===== */
+/* ===== AMBIL ANTRIAN (FIXED) ===== */
 async function ambilAntrian(){
-  const name=nameInput.value.trim();
-  const plate=plateInput.value.trim().toUpperCase();
-  if(!name||!plate)return alert("Nama & plat wajib diisi");
+  const name = document.getElementById("name").value.trim();
+  const plate = document.getElementById("plate").value.trim().toUpperCase();
 
-  const snap=await db.collection("queue").get();
-  myNumber=snap.docs.length+1;
+  if(!name || !plate){
+    alert("Nama & plat wajib diisi");
+    return;
+  }
+
+  const snap = await db.collection("queue").get();
+  myNumber = snap.docs.length + 1;
 
   await db.collection("queue").add({
-    number:myNumber,
-    name,plate,
+    number: myNumber,
+    name,
+    plate,
     deviceId,
-    createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  localStorage.setItem("queue_number",myNumber);
-  localStorage.setItem("queue_name",name);
-  localStorage.setItem("queue_plate",plate);
+  localStorage.setItem("queue_number", myNumber);
+  localStorage.setItem("queue_name", name);
+  localStorage.setItem("queue_plate", plate);
 
   showResult("...");
   listenStatus();
@@ -195,7 +200,6 @@ function listenStatus(){
       text="SEKARANG GILIRAN KAMU 🔌";
       cls="now";
 
-      // cek device lock
       const qSnap = await db.collection("queue")
         .where("number","==",myNumber)
         .limit(1).get();
